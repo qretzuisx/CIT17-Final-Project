@@ -65,7 +65,7 @@ CREATE DATABASE carwash_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 1. Click on the `carwash_system` database in the left sidebar
 2. Click on the "Import" tab
 3. Click "Choose File"
-4. Navigate to `UCCITCSWEB234079294/Final-Project/database/schema.sql`
+4. Navigate to `CIT17-Final-Project/database/schema.sql`
 5. Click "Go" at the bottom
 6. Wait for success message
 
@@ -82,7 +82,7 @@ This step is optional but recommended for testing.
 #### Using phpMyAdmin:
 
 1. In the `carwash_system` database, click "Import" tab
-2. Choose file: `UCCITCSWEB234079294/Final-Project/database/sample_data.sql`
+2. Choose file: `CIT17-Final-Project/database/sample_data.sql`
 3. Click "Go"
 
 #### Using MySQL Command Line:
@@ -93,7 +93,7 @@ mysql -u root -p carwash_system < database/sample_data.sql
 
 ### Step 6: Configure Database Connection
 
-1. Open `UCCITCSWEB234079294/Final-Project/config/database.php` in a text editor
+1. Open `CIT17-Final-Project/config/database.php` in a text editor
 2. Verify/Update the database credentials:
 
 ```php
@@ -108,14 +108,14 @@ define('DB_NAME', 'carwash_system'); // Database name
 ### Step 7: Set File Permissions (Linux/Mac only)
 
 ```bash
-chmod -R 755 UCCITCSWEB234079294
-chmod -R 777 UCCITCSWEB234079294/Final-Project/uploads
+chmod -R 755 CIT17-Final-Project
+chmod -R 777 CIT17-Final-Project/uploads
 ```
 
 ### Step 8: Test the Installation
 
 1. Open your web browser
-2. Navigate to: `http://localhost/UCCITCSWEB234079294/Final-Project/Final-Project/`
+2. Navigate to: `http://localhost/UCCITCSWEB234079294/CIT17-Final-Project/`
 3. You should see the home page
 
 ---
@@ -124,7 +124,7 @@ chmod -R 777 UCCITCSWEB234079294/Final-Project/uploads
 
 ### Main URL
 ```
-http://localhost/UCCITCSWEB234079294/Final-Project/Final-Project/
+http://localhost/CIT17-Final-Project/
 ```
 
 ### Demo Login Credentials
@@ -147,7 +147,7 @@ http://localhost/UCCITCSWEB234079294/Final-Project/Final-Project/
 
 ### Test User Registration
 
-1. Go to `http://localhost/UCCITCSWEB234079294/Final-Project/Final-Project/auth/register.php`
+1. Go to `http://localhost/CIT17-Final-Project/auth/register.php`
 2. Fill in all required fields
 3. Click "Register"
 4. Login with your new credentials
@@ -177,7 +177,7 @@ http://localhost/UCCITCSWEB234079294/Final-Project/Final-Project/
 
 **Solutions:**
 - Check if Apache is running
-- Verify the URL: `http://localhost/UCCITCSWEB234079294/Final-Project/Final-Project/`
+- Verify the URL: `http://localhost/CIT17-Final-Project/`
 - Check for PHP errors: Enable `display_errors` in `php.ini`
 - Clear browser cache
 
@@ -235,7 +235,7 @@ You should see:
 Edit `config/config.php`:
 
 ```php
-define('SITE_URL', 'http://your-domain.com/UCCITCSWEB234079294');
+define('SITE_URL', 'http://your-domain.com/CIT17-Final-Project');
 ```
 
 ### Enable/Disable Error Display
@@ -299,7 +299,7 @@ mysqldump -u root -p carwash_system > backup.sql
 
 Copy the entire project folder:
 ```bash
-cp -r UCCITCSWEB234079294 UCCITCSWEB234079294_backup
+cp -r CIT17-Final-Project_backup
 ```
 
 ---
@@ -322,16 +322,10 @@ DROP DATABASE carwash_system;
 ```
 
 ### Remove Files
-Delete the `UCCITCSWEB234079294` folder from your web server directory.
+Delete the `UCIT17-Final-Project` folder from your web server directory.
 
 ---
 
-## Additional Resources
-
-### Documentation
-- `README.md` - Project overview and features
-- `Final-Project.md` - Project requirements and rubrics
-- `database/schema.sql` - Complete database structure
 
 ### Support Files
 - `database/sample_data.sql` - Test data
