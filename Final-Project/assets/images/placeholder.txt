@@ -1,0 +1,22 @@
+This folder contains image assets for the Car Wash Appointment System.
+
+Recommended images to add:
+- hero-car.png (600x400) - Main hero section image
+- basic-wash.jpg - Basic wash service
+- premium-wash.jpg - Premium wash service
+- deluxe-wash.jpg - Deluxe wash service
+- full-detail.jpg - Full detail service
+- engine-clean.jpg - Engine cleaning service
+- moto-wash.jpg - Motorcycle wash service
+- default-service.jpg - Default service placeholder
+
+Image specifications:
+- Format: JPG, PNG
+- Max size: 500KB per image
+- Recommended dimensions: 350x200 for service images, 600x400 for hero
+- Optimized for web (compressed)
+
+You can use placeholder services like:
+- https://via.placeholder.com/600x400?text=Car+Wash
+- https://picsum.photos/ for random images
+- Or create your own professional images

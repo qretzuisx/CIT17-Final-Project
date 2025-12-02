@@ -1,0 +1,71 @@
+# Car Wash Appointment System - Git Ignore File
+
+# Configuration files with sensitive data
+config/database.php
+
+# User uploaded files
+uploads/*
+!uploads/.gitkeep
+
+# Session files
+sessions/*
+
+# Log files
+*.log
+logs/*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/*
+temp/*
+cache/*
+
+# PHP specific
+vendor/
+composer.lock
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Database dumps
+*.sql.gz
+backup_*.sql
+
+# Environment files
+.env
+.env.local
+
+# Node modules (if using any build tools)
+node_modules/
+package-lock.json
+
+# Compiled CSS (if using preprocessors)
+*.css.map
+
+# Error logs
+error_log
+php_error.log
+
+# Cache directories
+.cache/
+__pycache__/
