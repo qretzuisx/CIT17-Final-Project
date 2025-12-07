@@ -10,9 +10,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Application settings
-define('SITE_NAME', 'Car Wash Appointment System');
-define('SITE_URL', 'http://localhost/UCCITCSWEB234079294/Final-Project%20Car%20Wash%20Appointment');
-define('ADMIN_EMAIL', 'admin@carwash.com');
+define('SITE_NAME', 'Wellness Center Booking & Reservation System');
+define('SITE_URL', 'http://localhost/CIT17-Final-Project');
+define('ADMIN_EMAIL', 'admin@wellness.com');
 
 // Directory paths
 define('ROOT_PATH', dirname(dirname(__FILE__)));
@@ -53,14 +53,21 @@ function isLoggedIn() {
  * Check if user is admin
  */
 function isAdmin() {
-    return isLoggedIn() && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'admin';
+    return isLoggedIn() && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 }
 
 /**
- * Check if user is washer
+ * Check if user is therapist
  */
-function isWasher() {
-    return isLoggedIn() && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'washer';
+function isTherapist() {
+    return isLoggedIn() && isset($_SESSION['role']) && $_SESSION['role'] === 'therapist';
+}
+
+/**
+ * Check if user is customer
+ */
+function isCustomer() {
+    return isLoggedIn() && isset($_SESSION['role']) && $_SESSION['role'] === 'customer';
 }
 
 /**
@@ -85,7 +92,7 @@ function sanitize($data) {
  * Format currency
  */
 function formatCurrency($amount) {
-    return '₱' . number_format($amount, 2);
+    return '$' . number_format($amount, 2);
 }
 
 /**

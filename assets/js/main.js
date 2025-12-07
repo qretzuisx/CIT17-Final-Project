@@ -1,33 +1,274 @@
 /**
- * Car Wash Appointment System - Main JavaScript
+ * Wellness Center Booking System - Main JavaScript
+ * Common utilities and AJAX functions
  */
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+// Base API URL
+const API_BASE_URL = 'api/';
+
+/**
+ * AJAX Helper Function
+ */
+function makeRequest(url, method = 'GET', data = null) {
+    return new Promise((resolve, reject) => {
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        };
+
+        if (data && method !== 'GET') {
+            options.body = JSON.stringify(data);
+        }
+
+        fetch(url, options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
+}
+
+/**
+ * Load Services
+ */
+async function loadServices() {
+    try {
+        const response = await makeRequest(API_BASE_URL + 'get_services.php');
+        if (response.success) {
+            return response.data;
+        }
+        return [];
+    } catch (error) {
+        console.error('Error loading services:', error);
+        return [];
+    }
+}
+
+/**
+ * Load Therapists
+ */
+async function loadTherapists() {
+    try {
+        const response = await makeRequest(API_BASE_URL + 'get_therapists.php');
+        if (response.success) {
+            return response.data;
+        }
+        return [];
+    } catch (error) {
+        console.error('Error loading therapists:', error);
+        return [];
+    }
+}
+
+/**
+ * Load Available Time Slots
+ */
+async function loadAvailability(therapistId, date, serviceId) {
+    try {
+        const url = `${API_BASE_URL}get_availability.php?therapist_id=${therapistId}&date=${date}&service_id=${serviceId}`;
+        const response = await makeRequest(url);
+        if (response.success) {
+            return response.data;
+        }
+        return [];
+    } catch (error) {
+        console.error('Error loading availability:', error);
+        return [];
+    }
+}
+
+/**
+ * Apply Promo Code
+ */
+async function applyPromoCode(promoCode, totalAmount) {
+    try {
+        const response = await makeRequest(API_BASE_URL + 'apply_promo.php', 'POST', {
+            promo_code: promoCode,
+            total_amount: totalAmount
+        });
+        return response;
+    } catch (error) {
+        console.error('Error applying promo code:', error);
+        return { success: false, message: 'Failed to apply promo code' };
+    }
+}
+
+/**
+ * Create Appointment
+ */
+async function createAppointment(appointmentData) {
+    try {
+        const response = await makeRequest(API_BASE_URL + 'create_appointment.php', 'POST', appointmentData);
+        return response;
+    } catch (error) {
+        console.error('Error creating appointment:', error);
+        return { success: false, message: 'Failed to create appointment' };
+    }
+}
+
+/**
+ * Create Payment
+ */
+async function createPayment(paymentData) {
+    try {
+        const response = await makeRequest(API_BASE_URL + 'create_payment.php', 'POST', paymentData);
+        return response;
+    } catch (error) {
+        console.error('Error creating payment:', error);
+        return { success: false, message: 'Failed to process payment' };
+    }
+}
+
+/**
+ * Show Notification
+ */
+function showNotification(message, type = 'info') {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert ${alertClass} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    const container = document.querySelector('.container') || document.body;
+    container.insertBefore(alertDiv, container.firstChild);
+
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+/**
+ * Format Currency
+ */
+function formatCurrency(amount) {
+    return '$' + parseFloat(amount).toFixed(2);
+}
+
+/**
+ * Format Date
+ */
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+/**
+ * Format Time
+ */
+function formatTime(timeString) {
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+}
+
+/**
+ * Validate Email
+ */
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+/**
+ * Validate Phone
+ */
+function validatePhone(phone) {
+    const re = /^[0-9]{10,15}$/;
+    return re.test(phone.replace(/\D/g, ''));
+}
+
+/**
+ * Password Strength Meter
+ */
+function checkPasswordStrength(password) {
+    let strength = 0;
     
-    // Auto-hide alerts after 5 seconds
-    const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
-    alerts.forEach(function(alert) {
-        setTimeout(function() {
+    if (password.length >= 8) strength++;
+    if (password.match(/[a-z]+/)) strength++;
+    if (password.match(/[A-Z]+/)) strength++;
+    if (password.match(/[0-9]+/)) strength++;
+    if (password.match(/[$@#&!]+/)) strength++;
+    
+    return {
+        strength: strength,
+        level: ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][strength] || 'Very Weak'
+    };
+}
+
+/**
+ * Show Loading Spinner
+ */
+function showLoading(element) {
+    if (element) {
+        element.innerHTML = '<div class="spinner"></div>';
+    }
+}
+
+/**
+ * Hide Loading Spinner
+ */
+function hideLoading(element) {
+    if (element) {
+        element.innerHTML = '';
+    }
+}
+
+/**
+ * Debounce Function
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Initialize on DOM ready
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-dismiss alerts
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
             const bsAlert = new bootstrap.Alert(alert);
             bsAlert.close();
         }, 5000);
     });
-    
-    // Confirm delete actions
-    const deleteButtons = document.querySelectorAll('.btn-delete, .delete-btn');
-    deleteButtons.forEach(function(button) {
-        button.addEventListener('click', function(e) {
-            if (!confirm('Are you sure you want to delete this item?')) {
-                e.preventDefault();
-                return false;
-            }
-        });
-    });
-    
+
     // Form validation
     const forms = document.querySelectorAll('.needs-validation');
-    forms.forEach(function(form) {
+    forms.forEach(form => {
         form.addEventListener('submit', function(event) {
             if (!form.checkValidity()) {
                 event.preventDefault();
@@ -36,163 +277,4 @@ document.addEventListener('DOMContentLoaded', function() {
             form.classList.add('was-validated');
         });
     });
-    
-    // Tooltip initialization
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // Popover initialization
-    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    popoverTriggerList.map(function(popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
-    });
-    
 });
-
-// Format currency
-function formatCurrency(amount) {
-    return '₱' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-}
-
-// Format date
-function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
-}
-
-// Format time
-function formatTime(timeString) {
-    const time = new Date('2000-01-01 ' + timeString);
-    return time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
-// Show loading spinner
-function showLoading(button) {
-    const originalText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
-    button.dataset.originalText = originalText;
-}
-
-// Hide loading spinner
-function hideLoading(button) {
-    button.disabled = false;
-    button.innerHTML = button.dataset.originalText;
-}
-
-// AJAX helper function
-function ajaxRequest(url, method, data, successCallback, errorCallback) {
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: method !== 'GET' ? JSON.stringify(data) : null
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (successCallback) successCallback(data);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (errorCallback) errorCallback(error);
-    });
-}
-
-// Show notification
-function showNotification(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
-    alertDiv.style.zIndex = '9999';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(function() {
-        alertDiv.remove();
-    }, 5000);
-}
-
-// Validate email
-function isValidEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-}
-
-// Validate phone number (Philippine format)
-function isValidPhone(phone) {
-    const re = /^(09|\+639)\d{9}$/;
-    return re.test(phone.replace(/\s/g, ''));
-}
-
-// Print function
-function printPage() {
-    window.print();
-}
-
-// Export to CSV
-function exportTableToCSV(tableId, filename) {
-    const table = document.getElementById(tableId);
-    let csv = [];
-    const rows = table.querySelectorAll('tr');
-    
-    for (let i = 0; i < rows.length; i++) {
-        const row = [];
-        const cols = rows[i].querySelectorAll('td, th');
-        
-        for (let j = 0; j < cols.length; j++) {
-            row.push(cols[j].innerText);
-        }
-        
-        csv.push(row.join(','));
-    }
-    
-    downloadCSV(csv.join('\n'), filename);
-}
-
-function downloadCSV(csv, filename) {
-    const csvFile = new Blob([csv], { type: 'text/csv' });
-    const downloadLink = document.createElement('a');
-    downloadLink.download = filename;
-    downloadLink.href = window.URL.createObjectURL(csvFile);
-    downloadLink.style.display = 'none';
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-}
-
-// Smooth scroll to element
-function smoothScrollTo(elementId) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-// Check session timeout
-let lastActivity = Date.now();
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-
-function checkSessionTimeout() {
-    if (Date.now() - lastActivity > SESSION_TIMEOUT) {
-        alert('Your session has expired. Please login again.');
-        window.location.href = 'auth/logout.php';
-    }
-}
-
-// Update last activity on user interaction
-document.addEventListener('mousemove', function() {
-    lastActivity = Date.now();
-});
-
-document.addEventListener('keypress', function() {
-    lastActivity = Date.now();
-});
-
-// Check session every minute
-setInterval(checkSessionTimeout, 60000);

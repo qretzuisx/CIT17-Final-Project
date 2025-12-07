@@ -1,261 +1,302 @@
 <?php
 /**
- * Dashboard Page - User's appointment management
+ * User Dashboard - Wellness Center
  */
 $page_title = 'Dashboard';
-require_once '../config/config.php';
-require_once '../config/database.php';
+require_once __DIR__ . '/../includes/header.php';
 
-// Check if user is logged in
 if (!isLoggedIn()) {
-    setFlashMessage('warning', 'Please login to access your dashboard.');
+    setFlashMessage('warning', 'Please login to access your dashboard');
     redirect('auth/login.php');
 }
 
-require_once '../includes/header.php';
+require_once __DIR__ . '/../includes/functions/appointments.php';
+require_once __DIR__ . '/../includes/functions/reviews.php';
+require_once __DIR__ . '/../includes/functions/users.php';
+require_once __DIR__ . '/../includes/functions/payments.php';
+require_once __DIR__ . '/../config/config.php';
 
-$db = getDBConnection();
+$user_id = $_SESSION['user_id'];
+$user = get_user_by_id($user_id);
 
-// Get user's appointments
-try {
-    $stmt = $db->prepare("SELECT a.*, s.service_name, s.base_price, v.brand, v.model, v.plate_number, 
-                                 u.full_name as washer_name, p.payment_status, p.payment_method
-                          FROM appointments a
-                          JOIN services s ON a.service_id = s.service_id
-                          JOIN vehicles v ON a.vehicle_id = v.vehicle_id
-                          JOIN washers w ON a.washer_id = w.washer_id
-                          JOIN users u ON w.user_id = u.user_id
-                          LEFT JOIN payments p ON a.appointment_id = p.appointment_id
-                          WHERE a.user_id = ?
-                          ORDER BY a.appointment_date DESC, a.appointment_time DESC");
-    $stmt->execute([$_SESSION['user_id']]);
-    $appointments = $stmt->fetchAll();
-} catch (PDOException $e) {
-    $appointments = [];
-    error_log('Error fetching appointments: ' . $e->getMessage());
-}
+// Get appointments
+$upcoming_appointments = get_user_appointments($user_id, 'confirmed');
+$past_appointments = get_user_appointments($user_id, 'completed');
+$pending_appointments = get_user_appointments($user_id, 'pending');
 
-// Get statistics
-try {
-    $stmt = $db->prepare("SELECT 
-                            COUNT(*) as total_appointments,
-                            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-                          FROM appointments WHERE user_id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $stats = $stmt->fetch();
-} catch (PDOException $e) {
-    $stats = ['total_appointments' => 0, 'completed' => 0, 'pending' => 0, 'cancelled' => 0];
-    error_log('Error fetching statistics: ' . $e->getMessage());
-}
-
-// Handle appointment cancellation
-if (isset($_POST['cancel_appointment'])) {
-    $appointment_id = $_POST['appointment_id'];
-    try {
-        $stmt = $db->prepare("UPDATE appointments SET status = 'cancelled' WHERE appointment_id = ? AND user_id = ?");
-        $stmt->execute([$appointment_id, $_SESSION['user_id']]);
-        setFlashMessage('success', 'Appointment cancelled successfully.');
-        redirect('pages/dashboard.php');
-    } catch (PDOException $e) {
-        error_log('Error cancelling appointment: ' . $e->getMessage());
-        setFlashMessage('danger', 'Failed to cancel appointment.');
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['submit_review'])) {
+        require_once __DIR__ . '/../includes/functions/reviews.php';
+        $result = submit_review(
+            (int)$_POST['appointment_id'],
+            $user_id,
+            (int)$_POST['rating'],
+            sanitize($_POST['comment'])
+        );
+        if ($result['success']) {
+            setFlashMessage('success', 'Review submitted successfully!');
+            redirect('dashboard.php');
+        } else {
+            setFlashMessage('error', $result['message']);
+        }
+    }
+    
+    if (isset($_POST['cancel_appointment'])) {
+        $result = update_appointment_status((int)$_POST['appointment_id'], 'canceled');
+        if ($result['success']) {
+            setFlashMessage('success', 'Appointment canceled successfully');
+            redirect('dashboard.php');
+        }
     }
 }
 ?>
 
 <div class="container py-5">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-5 fw-bold">Welcome, <?php echo htmlspecialchars($_SESSION['full_name']); ?>!</h1>
-            <p class="lead text-muted">Manage your appointments and track your car wash history</p>
+    <!-- Welcome Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2>Welcome, <?php echo htmlspecialchars($user['full_name']); ?>!</h2>
+            <p class="text-muted mb-0">Manage your appointments and profile from here.</p>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card bg-primary text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase mb-1">Total</h6>
-                            <h2 class="mb-0"><?php echo $stats['total_appointments']; ?></h2>
-                        </div>
-                        <i class="fas fa-calendar-alt fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card bg-success text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase mb-1">Completed</h6>
-                            <h2 class="mb-0"><?php echo $stats['completed']; ?></h2>
-                        </div>
-                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card bg-warning text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase mb-1">Pending</h6>
-                            <h2 class="mb-0"><?php echo $stats['pending']; ?></h2>
-                        </div>
-                        <i class="fas fa-clock fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card bg-danger text-white shadow">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase mb-1">Cancelled</h6>
-                            <h2 class="mb-0"><?php echo $stats['cancelled']; ?></h2>
-                        </div>
-                        <i class="fas fa-times-circle fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Quick Actions</h5>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <a href="<?php echo BASE_URL; ?>pages/booking.php" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> New Appointment
-                        </a>
-                        <a href="<?php echo BASE_URL; ?>pages/services.php" class="btn btn-outline-primary">
-                            <i class="fas fa-list"></i> View Services
-                        </a>
-                        <a href="<?php echo BASE_URL; ?>pages/profile.php" class="btn btn-outline-secondary">
-                            <i class="fas fa-user"></i> My Profile
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Appointments List -->
     <div class="row">
-        <div class="col-12">
-            <div class="card shadow">
+        <div class="col-md-3">
+            <!-- Quick Stats -->
+            <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0"><i class="fas fa-calendar-alt"></i> My Appointments</h4>
+                    <h6 class="mb-0">Quick Stats</h6>
                 </div>
                 <div class="card-body">
-                    <?php if (!empty($appointments)): ?>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Date & Time</th>
-                                        <th>Service</th>
-                                        <th>Vehicle</th>
-                                        <th>Washer</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                        <th>Payment</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($appointments as $appointment): ?>
-                                        <tr>
-                                            <td>#<?php echo $appointment['appointment_id']; ?></td>
-                                            <td>
-                                                <?php echo formatDate($appointment['appointment_date']); ?><br>
-                                                <small class="text-muted"><?php echo formatTime($appointment['appointment_time']); ?></small>
-                                            </td>
-                                            <td><?php echo htmlspecialchars($appointment['service_name']); ?></td>
-                                            <td>
-                                                <?php echo htmlspecialchars($appointment['brand'] . ' ' . $appointment['model']); ?><br>
-                                                <small class="text-muted"><?php echo htmlspecialchars($appointment['plate_number']); ?></small>
-                                            </td>
-                                            <td><?php echo htmlspecialchars($appointment['washer_name']); ?></td>
-                                            <td><?php echo formatCurrency($appointment['total_amount']); ?></td>
-                                            <td>
-                                                <?php
-                                                $statusClass = [
-                                                    'pending' => 'warning',
-                                                    'confirmed' => 'info',
-                                                    'in_progress' => 'primary',
-                                                    'completed' => 'success',
-                                                    'cancelled' => 'danger'
-                                                ];
-                                                $class = $statusClass[$appointment['status']] ?? 'secondary';
-                                                ?>
-                                                <span class="badge bg-<?php echo $class; ?>">
-                                                    <?php echo ucfirst($appointment['status']); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <?php if ($appointment['payment_status']): ?>
-                                                    <span class="badge bg-<?php echo $appointment['payment_status'] === 'completed' ? 'success' : 'warning'; ?>">
-                                                        <?php echo ucfirst($appointment['payment_status']); ?>
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge bg-secondary">Unpaid</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="<?php echo BASE_URL; ?>pages/appointment-details.php?id=<?php echo $appointment['appointment_id']; ?>" 
-                                                       class="btn btn-info" title="View Details">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    <?php if ($appointment['status'] === 'pending' && !$appointment['payment_status']): ?>
-                                                        <a href="<?php echo BASE_URL; ?>pages/payment.php?appointment_id=<?php echo $appointment['appointment_id']; ?>" 
-                                                           class="btn btn-success" title="Pay Now">
-                                                            <i class="fas fa-credit-card"></i>
-                                                        </a>
-                                                    <?php endif; ?>
-                                                    <?php if (in_array($appointment['status'], ['pending', 'confirmed'])): ?>
-                                                        <form method="POST" style="display: inline;" 
-                                                              onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
-                                                            <input type="hidden" name="appointment_id" value="<?php echo $appointment['appointment_id']; ?>">
-                                                            <button type="submit" name="cancel_appointment" class="btn btn-danger" title="Cancel">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </form>
-                                                    <?php endif; ?>
+                    <p class="mb-2"><strong>Upcoming:</strong> <?php echo count($upcoming_appointments); ?></p>
+                    <p class="mb-2"><strong>Pending:</strong> <?php echo count($pending_appointments); ?></p>
+                    <p class="mb-0"><strong>Completed:</strong> <?php echo count($past_appointments); ?></p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <a href="booking.php" class="btn btn-primary btn-sm w-100 mb-2">
+                        <i class="fas fa-calendar-plus"></i> Book New Appointment
+                    </a>
+                    <a href="services.php" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                        <i class="fas fa-spa"></i> Browse Services
+                    </a>
+                    <a href="#profile" class="btn btn-outline-primary btn-sm w-100" onclick="document.getElementById('profile').scrollIntoView()">
+                        <i class="fas fa-user"></i> Edit Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <!-- Upcoming Appointments -->
+            <?php if (!empty($upcoming_appointments) || !empty($pending_appointments)): ?>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Upcoming & Pending Appointments</h5>
+                    </div>
+                    <div class="card-body">
+                        <?php 
+                        $all_upcoming = array_merge($pending_appointments, $upcoming_appointments);
+                        foreach ($all_upcoming as $appointment): 
+                            $payment = get_payment_by_appointment($appointment['appointment_id']);
+                        ?>
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <h6><?php echo htmlspecialchars($appointment['service_name']); ?></h6>
+                                            <p class="mb-1">
+                                                <i class="far fa-calendar"></i> 
+                                                <?php echo formatDate($appointment['appointment_date']); ?>
+                                            </p>
+                                            <p class="mb-1">
+                                                <i class="far fa-clock"></i> 
+                                                <?php echo formatTime($appointment['start_time']); ?> - 
+                                                <?php echo formatTime($appointment['end_time']); ?>
+                                            </p>
+                                            <p class="mb-0">
+                                                <i class="fas fa-user-md"></i> 
+                                                <?php echo htmlspecialchars($appointment['therapist_name']); ?>
+                                            </p>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <span class="badge badge-<?php echo $appointment['status']; ?>">
+                                                <?php echo ucfirst($appointment['status']); ?>
+                                            </span>
+                                            <?php if ($payment && $payment['payment_status'] === 'paid'): ?>
+                                                <div class="mt-2">
+                                                    <small class="text-success"><i class="fas fa-check-circle"></i> Paid</small>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                                                <input type="hidden" name="appointment_id" value="<?php echo $appointment['appointment_id']; ?>">
+                                                <input type="hidden" name="cancel_appointment" value="1">
+                                                <button type="submit" class="btn btn-danger btn-sm w-100 mb-2">
+                                                    <i class="fas fa-times"></i> Cancel
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Past Appointments -->
+            <?php if (!empty($past_appointments)): ?>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Past Appointments</h5>
+                    </div>
+                    <div class="card-body">
+                        <?php foreach ($past_appointments as $appointment): 
+                            $review = get_review_by_appointment($appointment['appointment_id']);
+                        ?>
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <h6><?php echo htmlspecialchars($appointment['service_name']); ?></h6>
+                                            <p class="mb-1">
+                                                <i class="far fa-calendar"></i> 
+                                                <?php echo formatDate($appointment['appointment_date']); ?> at 
+                                                <?php echo formatTime($appointment['start_time']); ?>
+                                            </p>
+                                            <p class="mb-0">
+                                                <i class="fas fa-user-md"></i> 
+                                                <?php echo htmlspecialchars($appointment['therapist_name']); ?>
+                                            </p>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <?php if ($review): ?>
+                                                <div class="mb-2">
+                                                    <small>Your Rating: 
+                                                        <?php for ($i = 0; $i < 5; $i++): ?>
+                                                            <i class="fas fa-star <?php echo $i < $review['rating'] ? 'text-warning' : 'text-muted'; ?>"></i>
+                                                        <?php endfor; ?>
+                                                    </small>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#reviewModal<?php echo $appointment['appointment_id']; ?>">
+                                                    View Review
+                                                </button>
+                                            <?php else: ?>
+                                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal<?php echo $appointment['appointment_id']; ?>">
+                                                    <i class="fas fa-star"></i> Leave Review
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Review Modal -->
+                            <div class="modal fade" id="reviewModal<?php echo $appointment['appointment_id']; ?>" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Review for <?php echo htmlspecialchars($appointment['service_name']); ?></h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <?php if ($review): ?>
+                                                <p><strong>Rating:</strong> 
+                                                    <?php for ($i = 0; $i < 5; $i++): ?>
+                                                        <i class="fas fa-star <?php echo $i < $review['rating'] ? 'text-warning' : 'text-muted'; ?>"></i>
+                                                    <?php endfor; ?>
+                                                </p>
+                                                <p><strong>Comment:</strong></p>
+                                                <p><?php echo htmlspecialchars($review['comment']); ?></p>
+                                            <?php else: ?>
+                                                <form method="POST">
+                                                    <input type="hidden" name="appointment_id" value="<?php echo $appointment['appointment_id']; ?>">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Rating *</label>
+                                                        <select class="form-select" name="rating" required>
+                                                            <option value="5">5 - Excellent</option>
+                                                            <option value="4">4 - Very Good</option>
+                                                            <option value="3">3 - Good</option>
+                                                            <option value="2">2 - Fair</option>
+                                                            <option value="1">1 - Poor</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Comment</label>
+                                                        <textarea class="form-control" name="comment" rows="4" required></textarea>
+                                                    </div>
+                                                    <button type="submit" name="submit_review" class="btn btn-primary">
+                                                        Submit Review
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Profile Management -->
+            <div class="card" id="profile">
+                <div class="card-header">
+                    <h5 class="mb-0">Account Management</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="profile.php">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" name="full_name" 
+                                       value="<?php echo htmlspecialchars($user['full_name']); ?>" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" 
+                                       value="<?php echo htmlspecialchars($user['email']); ?>" required>
+                            </div>
                         </div>
-                    <?php else: ?>
-                        <div class="text-center py-5">
-                            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
-                            <h4>No Appointments Yet</h4>
-                            <p class="text-muted">Book your first car wash appointment now!</p>
-                            <a href="<?php echo BASE_URL; ?>pages/booking.php" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Book Now
-                            </a>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" name="phone_number" 
+                                   value="<?php echo htmlspecialchars($user['phone_number']); ?>" required>
                         </div>
-                    <?php endif; ?>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Profile
+                        </button>
+                    </form>
+
+                    <hr>
+
+                    <h6>Change Password</h6>
+                    <form method="POST" action="profile.php">
+                        <div class="mb-3">
+                            <label class="form-label">Current Password</label>
+                            <input type="password" class="form-control" name="current_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Password</label>
+                            <input type="password" class="form-control" name="new_password" required>
+                        </div>
+                        <button type="submit" name="change_password" class="btn btn-primary">
+                            <i class="fas fa-key"></i> Change Password
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

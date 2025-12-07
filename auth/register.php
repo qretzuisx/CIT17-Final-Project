@@ -1,9 +1,9 @@
 <?php
 /**
- * Registration Page
+ * Registration Page - Wellness Center
  */
-require_once '../config/config.php';
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/functions/users.php';
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -11,28 +11,23 @@ if (isLoggedIn()) {
 }
 
 $error = '';
-$success = '';
 $formData = [
-    'username' => '',
-    'email' => '',
     'full_name' => '',
-    'phone' => '',
-    'address' => ''
+    'email' => '',
+    'phone_number' => ''
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get and sanitize input
-    $formData['username'] = sanitize($_POST['username'] ?? '');
-    $formData['email'] = sanitize($_POST['email'] ?? '');
     $formData['full_name'] = sanitize($_POST['full_name'] ?? '');
-    $formData['phone'] = sanitize($_POST['phone'] ?? '');
-    $formData['address'] = sanitize($_POST['address'] ?? '');
+    $formData['email'] = sanitize($_POST['email'] ?? '');
+    $formData['phone_number'] = sanitize($_POST['phone_number'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $role = sanitize($_POST['role'] ?? 'customer');
     
     // Validation
-    if (empty($formData['username']) || empty($formData['email']) || empty($formData['full_name']) || 
-        empty($formData['phone']) || empty($password)) {
+    if (empty($formData['full_name']) || empty($formData['email']) || 
+        empty($formData['phone_number']) || empty($password)) {
         $error = 'Please fill in all required fields.';
     } elseif (!filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
@@ -41,42 +36,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password !== $confirm_password) {
         $error = 'Passwords do not match.';
     } else {
-        try {
-            $db = getDBConnection();
-            
-            // Check if username or email already exists
-            $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
-            $stmt->execute([$formData['username'], $formData['email']]);
-            if ($stmt->fetch()) {
-                $error = 'Username or email already exists.';
-            } else {
-                // Hash password
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                
-                // Insert new user
-                $stmt = $db->prepare("INSERT INTO users (username, email, password, full_name, phone, address, user_type) 
-                                     VALUES (?, ?, ?, ?, ?, ?, 'customer')");
-                $stmt->execute([
-                    $formData['username'],
-                    $formData['email'],
-                    $hashed_password,
-                    $formData['full_name'],
-                    $formData['phone'],
-                    $formData['address']
-                ]);
-                
-                setFlashMessage('success', 'Registration successful! Please login.');
-                redirect('auth/login.php');
-            }
-        } catch (PDOException $e) {
-            error_log('Registration error: ' . $e->getMessage());
-            $error = 'An error occurred. Please try again.';
+        $result = register_user(
+            $formData['full_name'],
+            $formData['email'],
+            $formData['phone_number'],
+            $password,
+            $role
+        );
+        
+        if ($result['success']) {
+            setFlashMessage('success', 'Registration successful! Please login.');
+            redirect('login.php');
+        } else {
+            $error = $result['message'];
         }
     }
 }
 
 $page_title = 'Register';
-require_once '../includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="container py-5">
@@ -87,27 +65,14 @@ require_once '../includes/header.php';
                     <div class="text-center mb-4">
                         <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
                         <h2>Create Account</h2>
-                        <p class="text-muted">Join us today and book your first car wash</p>
+                        <p class="text-muted">Join us today and start your wellness journey</p>
                     </div>
 
                     <?php if ($error): ?>
-                        <div class="alert alert-danger"><?php echo $error; ?></div>
+                        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
                     <?php endif; ?>
 
                     <form method="POST" action="" id="registerForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="username" class="form-label">Username *</label>
-                                <input type="text" class="form-control" id="username" name="username" 
-                                       value="<?php echo htmlspecialchars($formData['username']); ?>" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="email" class="form-label">Email *</label>
-                                <input type="email" class="form-control" id="email" name="email" 
-                                       value="<?php echo htmlspecialchars($formData['email']); ?>" required>
-                            </div>
-                        </div>
-
                         <div class="mb-3">
                             <label for="full_name" class="form-label">Full Name *</label>
                             <input type="text" class="form-control" id="full_name" name="full_name" 
@@ -115,15 +80,16 @@ require_once '../includes/header.php';
                         </div>
 
                         <div class="mb-3">
-                            <label for="phone" class="form-label">Phone Number *</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" 
-                                   value="<?php echo htmlspecialchars($formData['phone']); ?>" 
-                                   placeholder="09XX XXX XXXX" required>
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="<?php echo htmlspecialchars($formData['email']); ?>" required>
                         </div>
 
                         <div class="mb-3">
-                            <label for="address" class="form-label">Address</label>
-                            <textarea class="form-control" id="address" name="address" rows="2"><?php echo htmlspecialchars($formData['address']); ?></textarea>
+                            <label for="phone_number" class="form-label">Phone Number *</label>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                   value="<?php echo htmlspecialchars($formData['phone_number']); ?>" 
+                                   placeholder="09123456789" required>
                         </div>
 
                         <div class="row">
@@ -139,6 +105,8 @@ require_once '../includes/header.php';
                                        name="confirm_password" required>
                             </div>
                         </div>
+
+                        <input type="hidden" name="role" value="customer">
 
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="terms" required>
@@ -181,4 +149,4 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
 });
 </script>
 
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

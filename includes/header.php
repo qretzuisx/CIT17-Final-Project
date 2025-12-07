@@ -28,10 +28,10 @@ require_once __DIR__ . '/../config/config.php';
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
             <a class="navbar-brand" href="<?php echo BASE_URL; ?>">
-                <i class="fas fa-car-wash"></i> Car Wash System
+                <i class="fas fa-spa"></i> <?php echo SITE_NAME; ?>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>

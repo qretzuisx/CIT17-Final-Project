@@ -1,51 +1,137 @@
 <?php
 /**
- * Home Page - Car Wash Appointment System
+ * Home Page - Wellness Center Booking & Reservation System
  */
 $page_title = 'Home';
 require_once 'includes/header.php';
-require_once 'config/database.php';
+require_once 'config/config.php';
+require_once 'includes/functions/services.php';
+require_once 'includes/functions/reviews.php';
 
-// Get database connection
-$db = getDBConnection();
-
-// Fetch featured services
-try {
-    $stmt = $db->prepare("SELECT * FROM services WHERE status = 'active' ORDER BY service_id LIMIT 6");
-    $stmt->execute();
-    $services = $stmt->fetchAll();
-} catch (PDOException $e) {
-    $services = [];
-    error_log('Error fetching services: ' . $e->getMessage());
-}
+// Get featured services and reviews
+$services = get_all_services();
+$reviews = get_all_reviews(5);
 ?>
 
 <div class="container-fluid p-0">
     <!-- Hero Section -->
-    <section class="hero-section bg-primary text-white py-5">
+    <section class="hero-section">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6">
-                    <h1 class="display-4 fw-bold mb-4">Professional Car Wash Services</h1>
-                    <p class="lead mb-4">Book your car wash appointment online and enjoy our premium services at competitive prices.</p>
+                    <h1>Your Wellness Journey Starts Here</h1>
+                    <p class="lead mb-4">Experience tranquility and rejuvenation at our premier wellness center. Book your appointment today and discover the path to better health and inner peace.</p>
                     <div class="d-grid gap-2 d-md-flex">
                         <?php if (isLoggedIn()): ?>
-                            <a href="<?php echo BASE_URL; ?>pages/booking.php" class="btn btn-light btn-lg px-4">Book Now</a>
+                            <a href="<?php echo BASE_URL; ?>pages/booking.php" class="btn btn-light btn-lg px-4">
+                                <i class="fas fa-calendar-check"></i> Book Now
+                            </a>
                         <?php else: ?>
-                            <a href="<?php echo BASE_URL; ?>auth/register.php" class="btn btn-light btn-lg px-4">Get Started</a>
-                            <a href="<?php echo BASE_URL; ?>auth/login.php" class="btn btn-outline-light btn-lg px-4">Login</a>
+                            <a href="<?php echo BASE_URL; ?>auth/register.php" class="btn btn-light btn-lg px-4">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </a>
                         <?php endif; ?>
+                        <a href="<?php echo BASE_URL; ?>pages/services.php" class="btn btn-outline-light btn-lg px-4">
+                            <i class="fas fa-spa"></i> View Services
+                        </a>
                     </div>
                 </div>
                 <div class="col-lg-6">
-                    <img src="<?php echo IMG_URL; ?>hero-car.png" alt="Car Wash" class="img-fluid" onerror="this.src='https://via.placeholder.com/600x400?text=Car+Wash+Services'">
+                    <div class="text-center">
+                        <i class="fas fa-spa fa-10x" style="opacity: 0.3;"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- Services Overview Section -->
+    <section class="section">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2>Our Wellness Services</h2>
+                <p class="lead text-muted">Choose from our wide range of therapeutic and relaxation services</p>
+            </div>
+            <div class="services-grid">
+                <?php 
+                $featured_services = array_slice($services, 0, 5);
+                if (!empty($featured_services)): 
+                    foreach ($featured_services as $service): 
+                ?>
+                    <div class="service-card fade-in">
+                        <div class="service-card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-spa fa-3x text-primary"></i>
+                            </div>
+                            <h5><?php echo htmlspecialchars($service['service_name']); ?></h5>
+                            <p class="text-muted"><?php echo htmlspecialchars(substr($service['description'], 0, 100)); ?>...</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="service-price"><?php echo formatCurrency($service['price']); ?></span>
+                                <span class="service-duration">
+                                    <i class="far fa-clock"></i> <?php echo $service['duration']; ?> min
+                                </span>
+                            </div>
+                            <div class="mt-3">
+                                <a href="<?php echo BASE_URL; ?>pages/services.php#service-<?php echo $service['service_id']; ?>" class="btn btn-primary btn-sm w-100">
+                                    Learn More
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <?php 
+                    endforeach; 
+                else: 
+                ?>
+                    <div class="col-12">
+                        <div class="alert alert-info text-center">No services available at the moment.</div>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="text-center mt-5">
+                <a href="<?php echo BASE_URL; ?>pages/services.php" class="btn btn-primary btn-lg">
+                    View All Services
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <?php if (!empty($reviews)): ?>
+    <section class="section bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2>What Our Clients Say</h2>
+                <p class="lead text-muted">Real experiences from our valued customers</p>
+            </div>
+            <div class="testimonials-carousel">
+                <?php foreach ($reviews as $review): ?>
+                    <div class="testimonial-card">
+                        <div class="testimonial-avatar">
+                            <?php echo strtoupper(substr($review['reviewer_name'], 0, 1)); ?>
+                        </div>
+                        <div class="testimonial-rating">
+                            <?php 
+                            for ($i = 0; $i < 5; $i++) {
+                                if ($i < $review['rating']) {
+                                    echo '<i class="fas fa-star"></i>';
+                                } else {
+                                    echo '<i class="far fa-star"></i>';
+                                }
+                            }
+                            ?>
+                        </div>
+                        <p class="mb-3">"<?php echo htmlspecialchars(substr($review['comment'], 0, 150)); ?><?php echo strlen($review['comment']) > 150 ? '...' : ''; ?>"</p>
+                        <p class="mb-0"><strong><?php echo htmlspecialchars($review['reviewer_name']); ?></strong></p>
+                        <small class="text-muted"><?php echo htmlspecialchars($review['service_name']); ?></small>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
     <!-- Features Section -->
-    <section class="py-5">
+    <section class="section">
         <div class="container">
             <div class="row text-center">
                 <div class="col-md-3 mb-4">
@@ -57,109 +143,44 @@ try {
                 </div>
                 <div class="col-md-3 mb-4">
                     <div class="feature-box p-4">
-                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
-                        <h4>Expert Washers</h4>
-                        <p>Experienced professionals handle your vehicle with care</p>
+                        <i class="fas fa-user-md fa-3x text-primary mb-3"></i>
+                        <h4>Expert Therapists</h4>
+                        <p>Licensed professionals dedicated to your wellness</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
                     <div class="feature-box p-4">
-                        <i class="fas fa-hand-sparkles fa-3x text-primary mb-3"></i>
-                        <h4>Quality Service</h4>
-                        <p>Premium products and thorough cleaning guaranteed</p>
+                        <i class="fas fa-heart fa-3x text-primary mb-3"></i>
+                        <h4>Personalized Care</h4>
+                        <p>Tailored treatments for your unique needs</p>
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
                     <div class="feature-box p-4">
-                        <i class="fas fa-clock fa-3x text-primary mb-3"></i>
-                        <h4>Fast & Efficient</h4>
-                        <p>Quick service without compromising on quality</p>
+                        <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
+                        <h4>Safe & Clean</h4>
+                        <p>Highest standards of hygiene and safety</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Services Section -->
-    <section class="py-5 bg-light">
-        <div class="container">
-            <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold">Our Services</h2>
-                <p class="lead text-muted">Choose from our wide range of car wash services</p>
-            </div>
-            <div class="row">
-                <?php if (!empty($services)): ?>
-                    <?php foreach ($services as $service): ?>
-                        <div class="col-md-4 mb-4">
-                            <div class="card h-100 shadow-sm">
-                                <img src="<?php echo IMG_URL . ($service['image_url'] ?? 'default-service.jpg'); ?>" 
-                                     class="card-img-top" alt="<?php echo htmlspecialchars($service['service_name']); ?>"
-                                     onerror="this.src='https://via.placeholder.com/350x200?text=<?php echo urlencode($service['service_name']); ?>'">
-                                <div class="card-body">
-                                    <h5 class="card-title"><?php echo htmlspecialchars($service['service_name']); ?></h5>
-                                    <p class="card-text"><?php echo htmlspecialchars($service['description']); ?></p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="h5 text-primary mb-0"><?php echo formatCurrency($service['base_price']); ?></span>
-                                        <span class="text-muted"><i class="far fa-clock"></i> <?php echo $service['duration_minutes']; ?> min</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="col-12">
-                        <div class="alert alert-info text-center">No services available at the moment.</div>
-                    </div>
-                <?php endif; ?>
-            </div>
-            <div class="text-center mt-4">
-                <a href="<?php echo BASE_URL; ?>pages/services.php" class="btn btn-primary btn-lg">View All Services</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works Section -->
-    <section class="py-5">
-        <div class="container">
-            <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold">How It Works</h2>
-                <p class="lead text-muted">Simple steps to get your car washed</p>
-            </div>
-            <div class="row">
-                <div class="col-md-3 text-center mb-4">
-                    <div class="step-circle mx-auto mb-3">1</div>
-                    <h5>Create Account</h5>
-                    <p>Sign up for free and add your vehicle details</p>
-                </div>
-                <div class="col-md-3 text-center mb-4">
-                    <div class="step-circle mx-auto mb-3">2</div>
-                    <h5>Choose Service</h5>
-                    <p>Select the service that fits your needs</p>
-                </div>
-                <div class="col-md-3 text-center mb-4">
-                    <div class="step-circle mx-auto mb-3">3</div>
-                    <h5>Book Appointment</h5>
-                    <p>Pick a date and time that works for you</p>
-                </div>
-                <div class="col-md-3 text-center mb-4">
-                    <div class="step-circle mx-auto mb-3">4</div>
-                    <h5>Get Service</h5>
-                    <p>Show up and let us take care of your car</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-5 bg-primary text-white">
+    <!-- Final CTA Section -->
+    <section class="section bg-primary text-white">
         <div class="container text-center">
-            <h2 class="display-5 fw-bold mb-4">Ready to Get Started?</h2>
-            <p class="lead mb-4">Join thousands of satisfied customers who trust us with their vehicles</p>
-            <?php if (!isLoggedIn()): ?>
-                <a href="<?php echo BASE_URL; ?>auth/register.php" class="btn btn-light btn-lg px-5">Sign Up Now</a>
-            <?php else: ?>
-                <a href="<?php echo BASE_URL; ?>pages/booking.php" class="btn btn-light btn-lg px-5">Book Appointment</a>
-            <?php endif; ?>
+            <h2 class="mb-4">Ready to Relax? Book Your Session Today!</h2>
+            <p class="lead mb-4">Join thousands of satisfied clients who trust us for their wellness journey</p>
+            <div class="d-grid gap-2 d-md-flex justify-content-center">
+                <?php if (!isLoggedIn()): ?>
+                    <a href="<?php echo BASE_URL; ?>auth/register.php" class="btn btn-light btn-lg px-5">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </a>
+                <?php endif; ?>
+                <a href="<?php echo BASE_URL; ?>pages/booking.php" class="btn btn-accent btn-lg px-5">
+                    <i class="fas fa-calendar-check"></i> Book Now
+                </a>
+            </div>
         </div>
     </section>
 </div>

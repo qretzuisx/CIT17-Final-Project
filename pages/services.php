@@ -1,155 +1,236 @@
 <?php
 /**
- * Services Page - Display all available car wash services
+ * Services Page - Wellness Center
  */
 $page_title = 'Our Services';
-require_once '../config/config.php';
-require_once '../config/database.php';
-require_once '../includes/header.php';
+require_once __DIR__ . '/../includes/header.php';
+require_once __DIR__ . '/../includes/functions/services.php';
+require_once __DIR__ . '/../includes/functions/users.php';
 
-// Get database connection
-$db = getDBConnection();
-
-// Fetch all active services
-try {
-    $stmt = $db->prepare("SELECT * FROM services WHERE status = 'active' ORDER BY base_price ASC");
-    $stmt->execute();
-    $services = $stmt->fetchAll();
-} catch (PDOException $e) {
-    $services = [];
-    error_log('Error fetching services: ' . $e->getMessage());
-}
+$services = get_all_services();
+$therapists = get_all_therapists();
 ?>
 
 <div class="container py-5">
     <!-- Page Header -->
     <div class="text-center mb-5">
-        <h1 class="display-4 fw-bold">Our Services</h1>
-        <p class="lead text-muted">Choose the perfect car wash service for your vehicle</p>
+        <h1>Our Wellness Services</h1>
+        <p class="lead text-muted">Choose the perfect service for your wellness journey</p>
     </div>
 
-    <!-- Filter Section -->
-    <div class="row mb-4">
-        <div class="col-md-6 mx-auto">
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                <input type="text" class="form-control" id="searchService" placeholder="Search services...">
+    <!-- Filter and Search Section -->
+    <div class="filter-section mb-4">
+        <div class="row">
+            <!-- Search -->
+            <div class="col-md-4 mb-3">
+                <label for="searchInput" class="form-label">Search Services</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search by name or description...">
+                </div>
+            </div>
+
+            <!-- Price Range -->
+            <div class="col-md-4 mb-3">
+                <label for="priceRange" class="form-label">Price Range: <span id="priceDisplay">$0 - $200</span></label>
+                <input type="range" class="form-range" id="priceRange" min="0" max="200" value="200" step="10">
+            </div>
+
+            <!-- Duration Filter -->
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Duration</label>
+                <div class="btn-group w-100" role="group">
+                    <input type="checkbox" class="btn-check" id="duration30" autocomplete="off" value="30">
+                    <label class="btn btn-outline-primary" for="duration30">30min</label>
+                    
+                    <input type="checkbox" class="btn-check" id="duration60" autocomplete="off" value="60">
+                    <label class="btn btn-outline-primary" for="duration60">60min</label>
+                    
+                    <input type="checkbox" class="btn-check" id="duration90" autocomplete="off" value="90">
+                    <label class="btn btn-outline-primary" for="duration90">90min</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Therapist Filter -->
+            <div class="col-md-4 mb-3">
+                <label for="therapistFilter" class="form-label">Therapist</label>
+                <select class="form-select" id="therapistFilter">
+                    <option value="">All Therapists</option>
+                    <?php foreach ($therapists as $therapist): ?>
+                        <option value="<?php echo $therapist['user_id']; ?>"><?php echo htmlspecialchars($therapist['full_name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Sort -->
+            <div class="col-md-4 mb-3">
+                <label for="sortSelect" class="form-label">Sort By</label>
+                <select class="form-select" id="sortSelect">
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="duration">Duration</option>
+                    <option value="name">Name (A-Z)</option>
+                </select>
+            </div>
+
+            <!-- Clear Filters -->
+            <div class="col-md-4 mb-3 d-flex align-items-end">
+                <button class="btn btn-secondary w-100" id="clearFilters">
+                    <i class="fas fa-redo"></i> Clear Filters
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Services Grid -->
-    <div class="row" id="servicesContainer">
-        <?php if (!empty($services)): ?>
-            <?php foreach ($services as $service): ?>
-                <div class="col-md-6 col-lg-4 mb-4 service-item">
-                    <div class="card h-100 shadow-sm hover-shadow">
-                        <img src="<?php echo IMG_URL . ($service['image_url'] ?? 'default-service.jpg'); ?>" 
-                             class="card-img-top" alt="<?php echo htmlspecialchars($service['service_name']); ?>"
-                             style="height: 250px; object-fit: cover;"
-                             onerror="this.src='https://via.placeholder.com/400x250?text=<?php echo urlencode($service['service_name']); ?>'">
-                        
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title"><?php echo htmlspecialchars($service['service_name']); ?></h5>
-                            <p class="card-text flex-grow-1"><?php echo htmlspecialchars($service['description']); ?></p>
-                            
-                            <div class="service-details mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span><i class="fas fa-clock text-primary"></i> Duration:</span>
-                                    <strong><?php echo $service['duration_minutes']; ?> minutes</strong>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span><i class="fas fa-car text-primary"></i> Vehicle Type:</span>
-                                    <strong><?php echo ucfirst($service['vehicle_type']); ?></strong>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span><i class="fas fa-tag text-primary"></i> Price:</span>
-                                    <strong class="text-primary h5 mb-0"><?php echo formatCurrency($service['base_price']); ?></strong>
-                                </div>
-                            </div>
-
-                            <?php if (isLoggedIn()): ?>
-                                <a href="<?php echo BASE_URL; ?>pages/booking.php?service_id=<?php echo $service['service_id']; ?>" 
-                                   class="btn btn-primary w-100">
-                                    <i class="fas fa-calendar-check"></i> Book This Service
-                                </a>
-                            <?php else: ?>
-                                <a href="<?php echo BASE_URL; ?>auth/login.php" class="btn btn-outline-primary w-100">
-                                    Login to Book
-                                </a>
-                            <?php endif; ?>
-                        </div>
+    <div class="services-grid" id="servicesGrid">
+        <?php foreach ($services as $service): ?>
+            <div class="service-card" 
+                 data-service-id="<?php echo $service['service_id']; ?>"
+                 data-price="<?php echo $service['price']; ?>"
+                 data-duration="<?php echo $service['duration']; ?>"
+                 data-name="<?php echo htmlspecialchars(strtolower($service['service_name'])); ?>"
+                 data-description="<?php echo htmlspecialchars(strtolower($service['description'])); ?>">
+                <div class="service-card-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-spa fa-4x text-primary"></i>
+                    </div>
+                    <h5><?php echo htmlspecialchars($service['service_name']); ?></h5>
+                    <p class="text-muted"><?php echo htmlspecialchars($service['description']); ?></p>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span class="service-price"><?php echo formatCurrency($service['price']); ?></span>
+                        <span class="service-duration">
+                            <i class="far fa-clock"></i> <?php echo $service['duration']; ?> min
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <?php if (isLoggedIn()): ?>
+                            <a href="<?php echo BASE_URL; ?>pages/booking.php?service_id=<?php echo $service['service_id']; ?>" class="btn btn-primary w-100">
+                                Book This Service
+                            </a>
+                        <?php else: ?>
+                            <a href="<?php echo BASE_URL; ?>auth/login.php" class="btn btn-primary w-100">
+                                Login to Book
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="col-12">
-                <div class="alert alert-info text-center">
-                    <i class="fas fa-info-circle fa-2x mb-3"></i>
-                    <h4>No Services Available</h4>
-                    <p>Please check back later for our car wash services.</p>
-                </div>
             </div>
-        <?php endif; ?>
+        <?php endforeach; ?>
     </div>
 
-    <!-- Why Choose Us Section -->
-    <div class="row mt-5 pt-5 border-top">
-        <div class="col-12 text-center mb-4">
-            <h2 class="fw-bold">Why Choose Our Services?</h2>
-        </div>
-        <div class="col-md-3 text-center mb-3">
-            <i class="fas fa-star fa-3x text-warning mb-3"></i>
-            <h5>Quality Products</h5>
-            <p>We use only premium car care products</p>
-        </div>
-        <div class="col-md-3 text-center mb-3">
-            <i class="fas fa-user-check fa-3x text-success mb-3"></i>
-            <h5>Trained Staff</h5>
-            <p>Experienced professionals at your service</p>
-        </div>
-        <div class="col-md-3 text-center mb-3">
-            <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
-            <h5>Safe & Secure</h5>
-            <p>Your vehicle is in safe hands</p>
-        </div>
-        <div class="col-md-3 text-center mb-3">
-            <i class="fas fa-money-bill-wave fa-3x text-info mb-3"></i>
-            <h5>Best Prices</h5>
-            <p>Competitive pricing for all services</p>
-        </div>
+    <!-- No Results Message -->
+    <div id="noResults" class="alert alert-info text-center" style="display: none;">
+        <i class="fas fa-info-circle"></i> No services match your filters. Please try different criteria.
     </div>
 </div>
 
 <script>
-// Search functionality
-document.getElementById('searchService').addEventListener('keyup', function() {
-    var searchText = this.value.toLowerCase();
-    var serviceItems = document.querySelectorAll('.service-item');
-    
-    serviceItems.forEach(function(item) {
-        var serviceName = item.querySelector('.card-title').textContent.toLowerCase();
-        var serviceDesc = item.querySelector('.card-text').textContent.toLowerCase();
-        
-        if (serviceName.includes(searchText) || serviceDesc.includes(searchText)) {
-            item.style.display = '';
-        } else {
-            item.style.display = 'none';
-        }
-    });
-});
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const priceRange = document.getElementById('priceRange');
+    const priceDisplay = document.getElementById('priceDisplay');
+    const durationFilters = document.querySelectorAll('[id^="duration"]');
+    const therapistFilter = document.getElementById('therapistFilter');
+    const sortSelect = document.getElementById('sortSelect');
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    const servicesGrid = document.getElementById('servicesGrid');
+    const noResults = document.getElementById('noResults');
 
-// Add hover effect
-document.querySelectorAll('.hover-shadow').forEach(function(card) {
-    card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-5px)';
-        this.style.transition = 'all 0.3s ease';
+    let services = Array.from(document.querySelectorAll('.service-card'));
+
+    // Update price display
+    priceRange.addEventListener('input', function() {
+        priceDisplay.textContent = `$0 - $${this.value}`;
+        filterServices();
     });
-    
-    card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
+
+    // Filter services
+    function filterServices() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const maxPrice = parseInt(priceRange.value);
+        const selectedDurations = Array.from(durationFilters)
+            .filter(cb => cb.checked)
+            .map(cb => parseInt(cb.value));
+        const selectedTherapist = therapistFilter.value;
+        const sortBy = sortSelect.value;
+
+        let filtered = services.filter(service => {
+            const price = parseFloat(service.dataset.price);
+            const duration = parseInt(service.dataset.duration);
+            const name = service.dataset.name;
+            const description = service.dataset.description;
+
+            // Search filter
+            if (searchTerm && !name.includes(searchTerm) && !description.includes(searchTerm)) {
+                return false;
+            }
+
+            // Price filter
+            if (price > maxPrice) {
+                return false;
+            }
+
+            // Duration filter
+            if (selectedDurations.length > 0 && !selectedDurations.includes(duration)) {
+                return false;
+            }
+
+            return true;
+        });
+
+        // Sort
+        filtered.sort((a, b) => {
+            switch(sortBy) {
+                case 'price-low':
+                    return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+                case 'price-high':
+                    return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+                case 'duration':
+                    return parseInt(a.dataset.duration) - parseInt(b.dataset.duration);
+                case 'name':
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                default:
+                    return 0;
+            }
+        });
+
+        // Update display
+        services.forEach(service => {
+            service.style.display = 'none';
+        });
+
+        filtered.forEach(service => {
+            service.style.display = 'block';
+        });
+
+        // Show/hide no results message
+        if (filtered.length === 0) {
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+        }
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', debounce(filterServices, 300));
+    durationFilters.forEach(cb => cb.addEventListener('change', filterServices));
+    therapistFilter.addEventListener('change', filterServices);
+    sortSelect.addEventListener('change', filterServices);
+
+    // Clear filters
+    clearFiltersBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        priceRange.value = 200;
+        priceDisplay.textContent = '$0 - $200';
+        durationFilters.forEach(cb => cb.checked = false);
+        therapistFilter.value = '';
+        sortSelect.value = 'price-low';
+        filterServices();
     });
 });
 </script>
 
-<?php require_once '../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

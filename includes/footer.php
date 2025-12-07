@@ -1,34 +1,36 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white mt-5 py-4">
+    <footer>
         <div class="container">
             <div class="row">
                 <div class="col-md-4">
-                    <h5><i class="fas fa-car-wash"></i> Car Wash System</h5>
-                    <p>Professional car wash services at your convenience.</p>
+                    <h5><i class="fas fa-spa"></i> <?php echo SITE_NAME; ?></h5>
+                    <p>Your wellness journey starts here. Book your appointment and experience tranquility.</p>
                 </div>
                 <div class="col-md-4">
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="<?php echo BASE_URL; ?>index.php" class="text-white-50">Home</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/services.php" class="text-white-50">Services</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/booking.php" class="text-white-50">Book Appointment</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/contact.php" class="text-white-50">Contact Us</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>index.php">Home</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>pages/services.php">Services</a></li>
+                        <li><a href="<?php echo BASE_URL; ?>pages/booking.php">Book Appointment</a></li>
+                        <?php if (isLoggedIn()): ?>
+                            <li><a href="<?php echo BASE_URL; ?>pages/dashboard.php">Dashboard</a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
                 <div class="col-md-4">
                     <h5>Contact Info</h5>
-                    <p class="text-white-50">
-                        <i class="fas fa-map-marker-alt"></i> 123 Main Street, Manila<br>
+                    <p>
+                        <i class="fas fa-map-marker-alt"></i> 123 Wellness Way, City<br>
                         <i class="fas fa-phone"></i> (02) 1234-5678<br>
-                        <i class="fas fa-envelope"></i> info@carwash.com
+                        <i class="fas fa-envelope"></i> info@wellness.com
                     </p>
                 </div>
             </div>
-            <hr class="bg-white">
+            <hr>
             <div class="text-center">
-                <p class="mb-0">&copy; <?php echo date('Y'); ?> Car Wash Appointment System. All rights reserved.</p>
+                <p class="mb-0">&copy; <?php echo date('Y'); ?> <?php echo SITE_NAME; ?>. All rights reserved.</p>
             </div>
         </div>
     </footer>

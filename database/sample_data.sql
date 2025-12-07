@@ -1,54 +1,64 @@
--- Sample Data for Car Wash Appointment System
-USE carwash_system;
+-- Sample Data for Wellness Center Booking & Reservation System
+USE wellness_booking_system;
 
--- Sample Users (password for all: password123)
-INSERT INTO users (username, email, password, full_name, phone, address, user_type) VALUES
-('john_doe', 'john@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'John Doe', '09171234567', '123 Main St, Manila', 'customer'),
-('jane_smith', 'jane@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jane Smith', '09181234567', '456 Oak Ave, Quezon City', 'customer'),
-('mike_washer', 'mike@carwash.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Mike Johnson', '09191234567', '789 Pine Rd, Makati', 'washer'),
-('tom_washer', 'tom@carwash.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Tom Wilson', '09201234567', '321 Elm St, Pasig', 'washer');
-
--- Sample Vehicles
-INSERT INTO vehicles (user_id, vehicle_type, brand, model, year, color, plate_number) VALUES
-(2, 'sedan', 'Toyota', 'Camry', 2020, 'White', 'ABC1234'),
-(2, 'suv', 'Honda', 'CR-V', 2021, 'Black', 'XYZ5678'),
-(3, 'sedan', 'Mazda', '3', 2019, 'Red', 'DEF9012');
+-- Sample Users (password for all: password123 - hashed with bcrypt)
+INSERT INTO users (full_name, email, phone_number, password, role) VALUES
+-- Customers
+('John Doe', 'john@example.com', '09171234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'customer'),
+('Jane Smith', 'jane@example.com', '09181234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'customer'),
+-- Therapists
+('Sarah Johnson', 'sarah@wellness.com', '09191234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'therapist'),
+('Michael Chen', 'michael@wellness.com', '09201234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'therapist'),
+-- Admin
+('Admin User', 'admin@wellness.com', '09211234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 
 -- Sample Services
-INSERT INTO services (service_name, description, base_price, duration_minutes, vehicle_type, image_url) VALUES
-('Basic Wash', 'Exterior wash with soap and water, tire cleaning', 150.00, 30, 'all', 'images/basic-wash.jpg'),
-('Premium Wash', 'Basic wash plus interior vacuuming and window cleaning', 300.00, 60, 'all', 'images/premium-wash.jpg'),
-('Deluxe Wash', 'Premium wash plus waxing and tire shine', 500.00, 90, 'all', 'images/deluxe-wash.jpg'),
-('Full Detail', 'Complete interior and exterior detailing with polish', 1200.00, 180, 'all', 'images/full-detail.jpg'),
-('Engine Cleaning', 'Engine bay cleaning and degreasing', 400.00, 45, 'all', 'images/engine-clean.jpg'),
-('Motorcycle Wash', 'Complete motorcycle washing and cleaning', 100.00, 20, 'motorcycle', 'images/moto-wash.jpg');
+INSERT INTO services (service_name, description, duration, price) VALUES
+('Swedish Massage', 'A gentle full-body massage that helps reduce stress and promote relaxation. Perfect for first-time massage clients.', 60, 1500.00),
+('Deep Tissue Massage', 'A therapeutic massage technique that targets deeper layers of muscle and connective tissue. Ideal for chronic pain and tension.', 90, 2200.00),
+('Hot Stone Therapy', 'A relaxing massage using heated stones to ease muscle tension and improve circulation.', 75, 2500.00),
+('Aromatherapy Session', 'A soothing massage using essential oils to enhance physical and emotional well-being.', 60, 1800.00),
+('Reflexology', 'A therapeutic foot massage that stimulates pressure points to improve overall health and wellness.', 45, 1200.00),
+('Therapeutic Yoga Session', 'One-on-one yoga session tailored to your needs and goals.', 60, 1400.00),
+('Meditation & Mindfulness', 'Guided meditation sessions to reduce stress and improve mental clarity.', 45, 1000.00);
 
--- Sample Washers
-INSERT INTO washers (user_id, specialization, experience_years, rating, total_jobs) VALUES
-(4, 'Full Detailing, Engine Cleaning', 5, 4.85, 150),
-(5, 'Premium Wash, Basic Cleaning', 3, 4.60, 98);
-
--- Sample Schedules (for the next 7 days)
-INSERT INTO schedules (washer_id, schedule_date, start_time, end_time, status) VALUES
--- Mike's Schedule
-(1, CURDATE(), '08:00:00', '09:30:00', 'available'),
-(1, CURDATE(), '09:30:00', '11:00:00', 'available'),
-(1, CURDATE(), '11:00:00', '12:30:00', 'available'),
-(1, CURDATE(), '13:30:00', '15:00:00', 'available'),
-(1, CURDATE(), '15:00:00', '16:30:00', 'available'),
--- Tom's Schedule
-(2, CURDATE(), '08:00:00', '09:00:00', 'available'),
-(2, CURDATE(), '09:00:00', '10:00:00', 'available'),
-(2, CURDATE(), '10:00:00', '11:00:00', 'available'),
-(2, CURDATE(), '13:00:00', '14:00:00', 'available'),
-(2, CURDATE(), '14:00:00', '15:00:00', 'available');
+-- Sample Availability (for therapists - next 7 days)
+INSERT INTO availability (therapist_id, date, start_time, end_time) VALUES
+-- Sarah's availability (therapist_id = 3)
+(3, CURDATE() + INTERVAL 1 DAY, '09:00:00', '12:00:00'),
+(3, CURDATE() + INTERVAL 1 DAY, '13:00:00', '17:00:00'),
+(3, CURDATE() + INTERVAL 2 DAY, '09:00:00', '12:00:00'),
+(3, CURDATE() + INTERVAL 2 DAY, '13:00:00', '17:00:00'),
+(3, CURDATE() + INTERVAL 3 DAY, '10:00:00', '15:00:00'),
+-- Michael's availability (therapist_id = 4)
+(4, CURDATE() + INTERVAL 1 DAY, '08:00:00', '12:00:00'),
+(4, CURDATE() + INTERVAL 1 DAY, '14:00:00', '18:00:00'),
+(4, CURDATE() + INTERVAL 2 DAY, '09:00:00', '13:00:00'),
+(4, CURDATE() + INTERVAL 2 DAY, '14:00:00', '17:00:00'),
+(4, CURDATE() + INTERVAL 3 DAY, '10:00:00', '16:00:00'),
+(4, CURDATE() + INTERVAL 4 DAY, '09:00:00', '15:00:00');
 
 -- Sample Appointments
-INSERT INTO appointments (user_id, vehicle_id, service_id, washer_id, schedule_id, appointment_date, appointment_time, total_amount, status, notes) VALUES
-(2, 1, 2, 1, 1, CURDATE(), '08:00:00', 300.00, 'confirmed', 'Please focus on interior cleaning'),
-(3, 3, 1, 2, 6, CURDATE(), '08:00:00', 150.00, 'pending', NULL);
+INSERT INTO appointments (user_id, therapist_id, service_id, appointment_date, start_time, end_time, status) VALUES
+(1, 3, 1, CURDATE() + INTERVAL 1 DAY, '10:00:00', '11:00:00', 'confirmed'),
+(2, 4, 2, CURDATE() + INTERVAL 2 DAY, '10:00:00', '11:30:00', 'pending'),
+(1, 3, 3, CURDATE() - INTERVAL 5 DAY, '14:00:00', '15:15:00', 'completed'),
+(2, 4, 4, CURDATE() - INTERVAL 3 DAY, '11:00:00', '12:00:00', 'completed');
 
 -- Sample Payments
-INSERT INTO payments (appointment_id, amount, payment_method, payment_status, transaction_id) VALUES
-(1, 300.00, 'gcash', 'completed', 'GC2024010112345'),
-(2, 150.00, 'cash', 'pending', NULL);
+INSERT INTO payments (appointment_id, amount, payment_method, payment_status, transaction_id, payment_date) VALUES
+(1, 1500.00, 'credit_card', 'paid', 'TXN2024010112345', NOW()),
+(2, 2200.00, 'cash', 'unpaid', NULL, NULL),
+(3, 2500.00, 'paypal', 'paid', 'PP2024010212345', DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(4, 1800.00, 'credit_card', 'paid', 'TXN2024010312345', DATE_SUB(NOW(), INTERVAL 3 DAY));
+
+-- Sample Reviews
+INSERT INTO reviews (appointment_id, user_id, rating, comment, created_at) VALUES
+(3, 1, 5, 'Amazing hot stone therapy! Sarah is incredibly skilled and the entire experience was relaxing and rejuvenating. Highly recommend!', DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(4, 2, 4, 'Great aromatherapy session with Michael. The essential oils were perfect and I felt so relaxed afterward. Will definitely book again.', DATE_SUB(NOW(), INTERVAL 2 DAY));
+
+-- Sample Promotions
+INSERT INTO promotions (promo_code, description, discount_percent, start_date, end_date) VALUES
+('WELCOME20', 'Welcome offer: 20% off your first booking', 20.00, CURDATE(), CURDATE() + INTERVAL 30 DAY),
+('SUMMER15', 'Summer special: 15% off all services', 15.00, CURDATE(), CURDATE() + INTERVAL 60 DAY),
+('WELLNESS10', 'Wellness month: 10% off all massage services', 10.00, CURDATE(), CURDATE() + INTERVAL 45 DAY);
