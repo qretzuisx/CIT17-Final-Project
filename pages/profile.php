@@ -29,5 +29,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-redirect('dashboard.php');
+redirect('pages/dashboard.php');
 ?>
